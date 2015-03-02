@@ -72,7 +72,6 @@
         enablePaginationControls: true,
         paginationPageSizes: [10, 25, 50, 75],
         paginationPageSize: 10,
-        //minRowsToShow: 10,
         useExternalPagination: true,
         useExternalSorting: true,
         columnDefs: [
