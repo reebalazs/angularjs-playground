@@ -26,24 +26,27 @@
     }
   );
 
-  angular.module('myApp').factory('refreshHeight',
-    function() {
-      return function(gridApi, paginationOptions) {
-        // resize the grid, if the page size has changed
-        if (gridApi !== undefined) {
-          var grid = gridApi.grid;
+  angular.module('myApp').directive('fixGridResize', ['$timeout', 'gridUtil', function($timeout, gridUtil) {
+    return {
+      require: 'uiGrid',
+      scope: false,
+      link: function($scope, $elm, $attrs, uiGridCtrl) {
+        var grid = uiGridCtrl.grid;
+        grid.api.pagination.on.paginationChanged($scope, function(newPage, pageSize) {
           // Update row height
           // (See comment https://github.com/angular-ui/ng-grid/blob/master/src/js/core/directives/ui-grid-render-container.js#L169
           // where this really should be implemented.)
-          grid.gridHeight =  grid.options.rowHeight * (paginationOptions.pageSize + 1);
-          grid.buildStyles();
-        }
-      };
-    }
-  );
+          grid.gridHeight =  grid.headerHeight + grid.options.rowHeight * grid.options.paginationPageSize;
+          $elm.css('height', '' + grid.gridHeight + 'px');
+          grid.refresh();
+          console.log('Pagination changed!', grid.gridHeight, grid.options.paginationPageSize);
+        });
+      }
+    };
+  }]);
 
   angular.module('myApp').controller('TableController',
-    function($scope, $timeout, uiGridConstants, usersService, refreshHeight) {
+    function($scope, $timeout, uiGridConstants, usersService) {
 
       var paginationOptions = {
         pageNumber: 1,
@@ -75,11 +78,10 @@
             }
             getPage();
           });
-          gridApi.pagination.on.paginationChanged($scope, function (newPage, pageSize) {
+          gridApi.pagination.on.paginationChanged($scope, function(newPage, pageSize) {
             paginationOptions.pageNumber = newPage;
             paginationOptions.pageSize = pageSize;
             getPage();
-            refreshHeight(gridApi, paginationOptions);
           });
         },
       };
