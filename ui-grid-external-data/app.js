@@ -26,21 +26,32 @@
     }
   );
 
+  // Update grid height, if the pagination changes.
+  // Also correct for a bug which does not acknowledge the height of the pager,
+  // this must be fixed both at startup time, and on pagination change events.
+  // Paginator height must be added manually, otherwise it
+  // takes it off from the viewport area, and we have about one less row.
+  // This seems like a bug that occurs in connection with batched (non-scrolling) mode.
   angular.module('myApp').directive('fixGridResize', ['$timeout', 'gridUtil', function($timeout, gridUtil) {
     return {
       require: 'uiGrid',
       scope: false,
       link: function($scope, $elm, $attrs, uiGridCtrl) {
         var grid = uiGridCtrl.grid;
-        grid.api.pagination.on.paginationChanged($scope, function(newPage, pageSize) {
-          // Update row height
-          // (See comment https://github.com/angular-ui/ng-grid/blob/master/src/js/core/directives/ui-grid-render-container.js#L169
-          // where this really should be implemented.)
-          grid.gridHeight =  grid.headerHeight + grid.options.rowHeight * grid.options.paginationPageSize;
+        function fixGridHeight() {
+          var elPager = angular.element($elm[0].querySelector('.ui-grid-pager-panel'));
+          // Update row height based on the pagination page size.
+          // Also add paginator height.
+          var paginatorHeight = gridUtil.elementHeight(elPager);
+          grid.gridHeight =  grid.headerHeight + grid.options.rowHeight * grid.options.paginationPageSize +
+            paginatorHeight;
           $elm.css('height', '' + grid.gridHeight + 'px');
           grid.refresh();
-          console.log('Pagination changed!', grid.gridHeight, grid.options.paginationPageSize);
+        }
+        grid.api.pagination.on.paginationChanged($scope, function(newPage, pageSize) {
+          fixGridHeight();
         });
+        $timeout(fixGridHeight);
       }
     };
   }]);
@@ -61,6 +72,7 @@
         enablePaginationControls: true,
         paginationPageSizes: [10, 25, 50, 75],
         paginationPageSize: 10,
+        //minRowsToShow: 10,
         useExternalPagination: true,
         useExternalSorting: true,
         columnDefs: [
